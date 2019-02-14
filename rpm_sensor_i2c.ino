@@ -52,6 +52,7 @@ void loop() {
     noInterrupts();
     rpm[0] = (counters[0] * 60000) / (phases[0] * interval);
     rpm[1] = (counters[1] * 60000) / (phases[1] * interval);
+    counters[0] = counters[1] = 0;
     interrupts();
 
     // Signal data-ready to master device
