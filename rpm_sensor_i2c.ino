@@ -5,12 +5,6 @@
 // These two pins have their own interrupt function.
 const uint8_t pins[] = {2, 3};
 
-// Optional pin to signal 'data ready' to the I2C master
-const uint8_t data_ready_pin = 4;
-
-// Interval at which to perform the a measurement (milliseconds)
-const long interval  = 100; // 100ms = 10Hz
-
 // Motor phases or pulses per full motor rotation
 const uint8_t phases[2] = {12, 12};
 
@@ -31,37 +25,36 @@ void setup() {
   attachInterrupt(digitalPinToInterrupt(pins[0]), pin_0_interrupt, FALLING);
   attachInterrupt(digitalPinToInterrupt(pins[1]), pin_1_interrupt, FALLING);
 
-  pinMode(data_ready_pin, OUTPUT);
-  digitalWrite(data_ready_pin, LOW);  
-
   // From slave_sender example
   Wire.begin(8);                // join i2c bus with address #8
   Wire.onRequest(requestEvent); // register event
 }
 
 void loop() {
-  // Busy-wait until sufficient time has past
-  // See example blink without delay
-  
-  unsigned long current_millis = millis();
-
-  if (current_millis - previous_millis >= interval) {
-    previous_millis = current_millis;
-
-    // Briefly disable interrupts, because I am not sure if uint32 write operations are atomic
-    noInterrupts();
-    rpm[0] = (counters[0] * 60000) / (phases[0] * interval);
-    rpm[1] = (counters[1] * 60000) / (phases[1] * interval);
-    counters[0] = counters[1] = 0;
-    interrupts();
-
-    // Signal data-ready to master device
-    digitalWrite(data_ready_pin, HIGH);
-  }
+  // Nothing to do in the loop, maybe want to reset some state here after some timeout
 }
 
 void requestEvent() {
-  digitalWrite(data_ready_pin, LOW);
+  unsigned long current_millis = millis();
+  unsigned long delta = current_millis - previous_millis;
+  previous_millis = current_millis;
+
+  // Briefly disable interrupts, because I am not sure if uint32 write operations are atomic
+  noInterrupts();
+
+  // Make sure not to divide by zero
+  if (delta > 0) {
+    rpm[0] = (counters[0] * 60000) / (phases[0] * delta);
+    rpm[1] = (counters[1] * 60000) / (phases[1] * delta);
+
+  } else {
+    rpm[0] = rpm[1] = 0;
+
+  }
+
+  counters[0] = counters[1] = 0;
+  interrupts();
+
   Wire.write((byte*)rpm, sizeof(rpm));
 }
 
