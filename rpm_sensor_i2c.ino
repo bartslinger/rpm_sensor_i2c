@@ -32,6 +32,7 @@ void setup() {
 
 void loop() {
   // Nothing to do in the loop, maybe want to reset some state here after some timeout
+  delay(100); // necessary for the i2c request
 }
 
 void requestEvent() {
@@ -40,7 +41,7 @@ void requestEvent() {
   previous_millis = current_millis;
 
   // Briefly disable interrupts, because I am not sure if uint32 write operations are atomic
-  noInterrupts();
+//  noInterrupts();
 
   // Make sure not to divide by zero
   if (delta > 0) {
@@ -53,9 +54,9 @@ void requestEvent() {
   }
 
   counters[0] = counters[1] = 0;
-  interrupts();
+//  interrupts();
 
-  Wire.write((byte*)rpm, sizeof(rpm));
+  Wire.write((byte*)rpm, 8);
 }
 
 // interrupt functions
